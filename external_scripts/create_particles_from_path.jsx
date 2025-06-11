@@ -8,13 +8,9 @@
 
 (function createParticlesFromPath() {
     // Prompt user for main variables
-    var animationDuration = prompt("Enter animation duration (seconds):", 2);
-    if (!animationDuration) return;
-    animationDuration = parseFloat(animationDuration);
-
-    var numCopies = prompt("Enter number of particle/null copies:", 10);
-    if (!numCopies) return;
-    numCopies = parseInt(numCopies, 10);
+    // Hardcoded for testing
+    var animationDuration = 2;
+    var numCopies = 10;
 
     // Assume user has a comp and a path layer selected
     var comp = app.project.activeItem;
@@ -69,7 +65,7 @@
     var groupPosition = groupTransform ? groupTransform.property("Position").value : [0, 0];
     var layerPosition = pathLayer.property("Position").value;
 
-    // Bake path points in comp space
+    // Bake path points in comp space as [x, y] pairs
     var compPoints = [];
     for (var p = 0; p < numPoints; p++) {
         compPoints.push([
@@ -77,15 +73,23 @@
             points[p][1] + groupPosition[1] + layerPosition[1]
         ]);
     }
-    // Store as a marker comment on the path layer
-    pathLayer.property("Marker").setValueAtTime(0, new MarkerValue("pathPoints:" + JSON.stringify(compPoints)));
+    // Store as a marker comment on the path layer (comma-separated)
+    var flatCompPoints = [];
+    for (var q = 0; q < compPoints.length; q++) {
+        flatCompPoints.push(compPoints[q][0], compPoints[q][1]);
+    }
+    pathLayer.property("Marker").setValueAtTime(0, new MarkerValue("pathPoints:" + flatCompPoints.join(",")));
 
     // Create null and particle layers at intervals along the path
     for (var i = 0; i < numCopies; i++) {
         var t = i / numCopies; // offset for cycling
-        var idx = Math.floor(t * (numPoints - 1));
-        var vertex = compPoints[idx];
-        var pos = vertex;
+        var idx = Math.floor(t * (compPoints.length - 1));
+        idx = Math.max(0, Math.min(idx, compPoints.length - 1)); // Ensure in-bounds
+        var pos = compPoints[idx];
+        if (!pos || pos.length !== 2 || isNaN(pos[0]) || isNaN(pos[1])) {
+            alert("Invalid position at idx " + idx + ": " + pos);
+            continue;
+        }
 
         // Create Null
         var nullLayer = comp.layers.addNull();
@@ -113,7 +117,11 @@
         // Add expression for cycling along the path
         var expr = "" +
             "var marker = thisComp.layer('" + pathLayer.name + "').marker;\n" +
-            "var pts = JSON.parse(marker.key(1).comment.split('pathPoints:')[1]);\n" +
+            "var arr = marker.key(1).comment.split('pathPoints:')[1].split(',');\n" +
+            "var pts = [];\n" +
+            "for (var j = 0; j < arr.length; j += 2) {\n" +
+            "  pts.push([parseFloat(arr[j]), parseFloat(arr[j+1])]);\n" +
+            "}\n" +
             "var n = " + numCopies + ";\n" +
             "var idx = " + i + ";\n" +
             "var dur = " + animationDuration + ";\n" +

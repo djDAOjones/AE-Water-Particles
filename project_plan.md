@@ -10,8 +10,11 @@ Track features, tasks, and progress for your AE scripting project. Check off tas
     - Particle is now a 20px ellipse shape layer with fill color #00D0FF, positioned accurately along the path.
 - [ ] **Apply Parenting to New Layers**
   - [ ] Automatically parent new layers as needed
-- [ ] **Offset Path Cycles for Duplicates**
-  - [ ] Devise method to spread duplicates over animation duration
+- [x] **Offset Path Cycles for Duplicates**
+  - [x] Particles now loop indefinitely and smoothly along the path using expressions. Each is evenly offset in time.
+
+- [ ] **Evenly Space Path Vertices**
+  - [ ] Evenly space vertices along the path so that the speed of particles is consistent throughout the animation.
 - [ ] **Random Variance & Directionality for Particles**
   - [ ] Script to add randomness and directionality
 - [ ] **Update Script References**
