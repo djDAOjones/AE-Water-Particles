@@ -4,6 +4,11 @@ Track features, tasks, and progress for your AE scripting project. Check off tas
 
 ## Features & Tasks
 
+- **Dev 10% Layer Preview:** For development efficiency, the script can be set to only create 10% of the intended layers (e.g. 100 out of 1000), but calculates offsets and positions as if all layers exist. This allows for fast previewing of dense particle arrangements without overwhelming After Effects.
+
+- **Even Speed Along Path:**
+    - [x] Implemented arc-length-based resampling of the Bezier path, so particles now move at a consistent speed along the entire curve. (Uses oversampling and arc-length lookup for true even spacing.)
+    - [ ] Randomness in the expression is still not working as intended—particles currently follow the path without visible random motion.
 - [x] **Create Null and Particle Layers Based on a Path**
   - [x] Script to generate null/particle layers from a path
   - [x] Expose variables: animation duration, number of copies
@@ -15,6 +20,9 @@ Track features, tasks, and progress for your AE scripting project. Check off tas
 
 - [ ] **Evenly Space Path Vertices**
   - [ ] Evenly space vertices along the path so that the speed of particles is consistent throughout the animation.
+
+- [ ] **Velocity-Based Animation Duration**
+  - [ ] Allow user to specify particle velocity (in metres per second), and automatically derive animation duration from the calculated path length and speed.
 - [ ] **Random Variance & Directionality for Particles**
   - [ ] Script to add randomness and directionality
 - [ ] **Update Script References**
