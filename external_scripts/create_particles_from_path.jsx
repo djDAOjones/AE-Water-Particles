@@ -69,16 +69,23 @@
     var groupPosition = groupTransform ? groupTransform.property("Position").value : [0, 0];
     var layerPosition = pathLayer.property("Position").value;
 
+    // Bake path points in comp space
+    var compPoints = [];
+    for (var p = 0; p < numPoints; p++) {
+        compPoints.push([
+            points[p][0] + groupPosition[0] + layerPosition[0],
+            points[p][1] + groupPosition[1] + layerPosition[1]
+        ]);
+    }
+    // Store as a marker comment on the path layer
+    pathLayer.property("Marker").setValueAtTime(0, new MarkerValue("pathPoints:" + JSON.stringify(compPoints)));
+
     // Create null and particle layers at intervals along the path
     for (var i = 0; i < numCopies; i++) {
-        var t = i / (numCopies - 1);
+        var t = i / numCopies; // offset for cycling
         var idx = Math.floor(t * (numPoints - 1));
-        var vertex = points[idx];
-        // Convert to comp space
-        var pos = [
-            vertex[0] + groupPosition[0] + layerPosition[0],
-            vertex[1] + groupPosition[1] + layerPosition[1]
-        ];
+        var vertex = compPoints[idx];
+        var pos = vertex;
 
         // Create Null
         var nullLayer = comp.layers.addNull();
@@ -90,7 +97,6 @@
         // Create Particle as a shape layer (ellipse, 20px, filled #00D0FF)
         var particleLayer = comp.layers.addShape();
         particleLayer.name = "Particle " + (i + 1);
-        particleLayer.property("Position").setValue([pos[0], pos[1]]);
         particleLayer.inPoint = 0;
         particleLayer.outPoint = animationDuration;
 
@@ -104,8 +110,25 @@
         var fill = ellipseGroup.property("Contents").addProperty("ADBE Vector Graphic - Fill");
         fill.property("Color").setValue([0/255, 208/255, 255/255]);
 
-        // Parent particle to null
-        particleLayer.parent = nullLayer;
+        // Add expression for cycling along the path
+        var expr = "" +
+            "var marker = thisComp.layer('" + pathLayer.name + "').marker;\n" +
+            "var pts = JSON.parse(marker.key(1).comment.split('pathPoints:')[1]);\n" +
+            "var n = " + numCopies + ";\n" +
+            "var idx = " + i + ";\n" +
+            "var dur = " + animationDuration + ";\n" +
+            "var t = ((time/dur) + (idx/n)) % 1;\n" +
+            "var p = t * (pts.length - 1);\n" +
+            "var i0 = Math.floor(p);\n" +
+            "var i1 = Math.ceil(p);\n" +
+            "var frac = p - i0;\n" +
+            "var pt0 = pts[i0];\n" +
+            "var pt1 = pts[i1];\n" +
+            "[\n  pt0[0] + (pt1[0]-pt0[0])*frac,\n  pt0[1] + (pt1[1]-pt0[1])*frac\n]";
+        particleLayer.property("Transform").property("Position").expression = expr;
+
+        // Parent particle to null (optional, can remove if not needed)
+        // particleLayer.parent = nullLayer;
     }
 
     app.endUndoGroup();
