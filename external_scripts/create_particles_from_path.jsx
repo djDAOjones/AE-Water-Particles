@@ -161,47 +161,30 @@
         // --- Apply Path-Following Expressions ---
         var pathLayerName = pathLayer.name;
         // Position Expression
+        // --- Path-following with per-particle random wiggle ---
         var posExpr =
-            '// --- Path-following with advanced randomization ---\n' +
             'var marker = thisComp.layer("' + pathLayerName + '").marker.key(1).comment;\n' +
-            'var arr = marker.match(/pathPoints:([\\d\\.,-]+)/)[1].split(",").map(parseFloat);\n' +
-            'var points = [];\n' +
-            'for (var i = 0; i < arr.length; i += 2) points.push([arr[i], arr[i+1]]);\n' +
-            'var duration = 10;\n' +
-            '// Use totalCopies for offset so dev subset is unique\n' +
-            'var totalCopies = 1000;\n' +
-            'var offset = (index - 1) / totalCopies;\n' +
-            '// --- Mild speed fluctuation (random walk) ---\n' +
-            'seedRandom(index + 4321, true);\n' +
-            'var driftFreq = random(0.005, 0.015);\n' +
-            'var driftAmp = random(0.01, 0.03) * 3; // moderate scale\n' +
-            'var drift = Math.sin(time * driftFreq * 2 * Math.PI + random(0, Math.PI*2)) * driftAmp;\n' +
-            'var t = ((time/duration + offset + drift) % 1 + 1) % 1;\n' +
-            'var posIdx = t * (points.length - 1);\n' +
-            'var idxA = Math.floor(posIdx);\n' +
-            'var idxB = Math.min(idxA + 1, points.length - 1);\n' +
-            'var frac = posIdx - idxA;\n' +
-            'var pos = [\n' +
-            '  points[idxA][0] + (points[idxB][0] - points[idxA][0]) * frac,\n' +
-            '  points[idxA][1] + (points[idxB][1] - points[idxA][1]) * frac\n' +
-            '];\n' +
-            '// --- Amplitude modulation with slow sine ---\n' +
-            'seedRandom(index + 1234, true);\n' +
-            'var ampBase = random(3, 8) * 2; // moderate scale\n' +
-            'var ampModFreq = random(0.01, 0.035);\n' +
-            'var ampModPhase = random(0, Math.PI*2);\n' +
-            'var ampMod = 0.6 + 0.4 * Math.sin(time * ampModFreq * 2 * Math.PI + ampModPhase);\n' +
-            'var amp = ampBase * ampMod * 2; // moderate scale\n' +
-            'var freq = random(0.05, 0.15);\n' +
-            'var phase = random(0, Math.PI*2);\n' +
-            'var wiggle = Math.sin(time * freq * 2 * Math.PI + phase) * amp;\n' +
-            'var tangent = [\n' +
-            '  points[idxB][0] - points[idxA][0],\n' +
-            '  points[idxB][1] - points[idxA][1]\n' +
-            '];\n' +
+            'var arr = marker.match(/pathPoints:([\\d\\.,-]+)/)[1].split(",");\n' +
+            'var pts = [];\n' +
+            'for (var j = 0; j < arr.length; j += 2) { pts.push([parseFloat(arr[j]), parseFloat(arr[j+1])]); }\n' +
+            'var n = ' + numCopies + ';\n' +
+            'var idx = index - (thisComp.numLayers - n);\n' +
+            'var dur = ' + animationDuration + ';\n' +
+            'var t = ((time/dur) + (idx/n)) % 1;\n' +
+            'var p = t * (pts.length - 1);\n' +
+            'var i0 = Math.floor(p);\n' +
+            'var i1 = Math.ceil(p);\n' +
+            'var frac = p - i0;\n' +
+            'var pt0 = pts[i0];\n' +
+            'var pt1 = pts[i1];\n' +
+            'seedRandom(index, true);\n' +
+            'var wiggleAmount = random(8, 24); // Reasonable amplitude\n' +
+            'var wiggleFreq = random(0.5, 1.5); // Reasonable frequency\n' +
+            'var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI) * wiggleAmount;\n' +
+            'var tangent = [pt1[0]-pt0[0], pt1[1]-pt0[1]];\n' +
             'var norm = Math.sqrt(tangent[0]*tangent[0] + tangent[1]*tangent[1]);\n' +
             'var perp = [-tangent[1]/norm, tangent[0]/norm];\n' +
-            '[pos[0] + perp[0]*wiggle, pos[1] + perp[1]*wiggle]';
+            '[\n  pt0[0] + (pt1[0]-pt0[0])*frac + perp[0]*wiggle,\n  pt0[1] + (pt1[1]-pt0[1])*frac + perp[1]*wiggle\n]';
         particleLayer.property("Position").expression = posExpr;
         // Rotation Expression
         var rotExpr =
@@ -223,26 +206,6 @@
             'radiansToDegrees(Math.atan2(tangent[1], tangent[0]))';
         particleLayer.property("Rotation").expression = rotExpr;
 
-        // Add expression for cycling along the path
-        var expr = "" +
-            "var marker = thisComp.layer('" + pathLayer.name + "').marker;\n" +
-            "var arr = marker.key(1).comment.split('pathPoints:')[1].split(',');\n" +
-            "var pts = [];\n" +
-            "for (var j = 0; j < arr.length; j += 2) {\n" +
-            "  pts.push([parseFloat(arr[j]), parseFloat(arr[j+1])]);\n" +
-            "}\n" +
-            "var n = " + numCopies + ";\n" +
-            "var idx = " + i + ";\n" +
-            "var dur = " + animationDuration + ";\n" +
-            "var t = ((time/dur) + (idx/n)) % 1;\n" +
-            "var p = t * (pts.length - 1);\n" +
-            "var i0 = Math.floor(p);\n" +
-            "var i1 = Math.ceil(p);\n" +
-            "var frac = p - i0;\n" +
-            "var pt0 = pts[i0];\n" +
-            "var pt1 = pts[i1];\n" +
-            "[\n  pt0[0] + (pt1[0]-pt0[0])*frac,\n  pt0[1] + (pt1[1]-pt0[1])*frac\n]";
-        particleLayer.property("Transform").property("Position").expression = expr;
 
         // Parent particle to null (optional, can remove if not needed)
         // particleLayer.parent = nullLayer;
