@@ -65,12 +65,41 @@
     var groupPosition = groupTransform ? groupTransform.property("Position").value : [0, 0];
     var layerPosition = pathLayer.property("Position").value;
 
-    // Bake path points in comp space as [x, y] pairs
-    var compPoints = [];
+    // --- Path Resampling for Even Spacing ---
+    function distance(a, b) {
+        var dx = a[0] - b[0];
+        var dy = a[1] - b[1];
+        return Math.sqrt(dx*dx + dy*dy);
+    }
+    // Get original points in comp space
+    var origPoints = [];
     for (var p = 0; p < numPoints; p++) {
-        compPoints.push([
+        origPoints.push([
             points[p][0] + groupPosition[0] + layerPosition[0],
             points[p][1] + groupPosition[1] + layerPosition[1]
+        ]);
+    }
+    // Compute cumulative arc lengths
+    var arcLengths = [0];
+    for (var i = 1; i < origPoints.length; i++) {
+        arcLengths.push(arcLengths[i-1] + distance(origPoints[i-1], origPoints[i]));
+    }
+    var totalLength = arcLengths[arcLengths.length-1];
+    // Resample N points evenly along arc length
+    var N = 100;
+    var compPoints = [];
+    for (var s = 0; s < N; s++) {
+        var targetLen = (s / (N-1)) * totalLength;
+        // Find segment
+        var seg = 1;
+        while (seg < arcLengths.length && arcLengths[seg] < targetLen) seg++;
+        seg = Math.max(1, seg);
+        var t = (targetLen - arcLengths[seg-1]) / (arcLengths[seg] - arcLengths[seg-1]);
+        var ptA = origPoints[seg-1];
+        var ptB = origPoints[seg];
+        compPoints.push([
+            ptA[0] + (ptB[0] - ptA[0]) * t,
+            ptA[1] + (ptB[1] - ptA[1]) * t
         ]);
     }
     // Store as a marker comment on the path layer (comma-separated)
