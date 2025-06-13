@@ -174,13 +174,16 @@
             'var p = t * (pts.length - 1);\n' +
             'var i0 = Math.floor(p);\n' +
             'var i1 = Math.ceil(p);\n' +
+            'i0 = Math.max(0, Math.min(i0, pts.length - 1));\n' +
+            'i1 = Math.max(0, Math.min(i1, pts.length - 1));\n' +
             'var frac = p - i0;\n' +
             'var pt0 = pts[i0];\n' +
             'var pt1 = pts[i1];\n' +
             'seedRandom(index, true);\n' +
-            'var wiggleAmount = random(8, 24); // Reasonable amplitude\n' +
+            'var wiggleAmount = random(4, 12); // Reasonable amplitude\n' +
             'var wiggleFreq = random(0.5, 1.5); // Reasonable frequency\n' +
-            'var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI) * wiggleAmount;\n' +
+            'var wigglePhase = random(0, Math.PI * 2); // Random starting phase\n' +
+            'var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI + wigglePhase) * wiggleAmount;\n' +
             'var tangent = [pt1[0]-pt0[0], pt1[1]-pt0[1]];\n' +
             'var norm = Math.sqrt(tangent[0]*tangent[0] + tangent[1]*tangent[1]);\n' +
             'var perp = [-tangent[1]/norm, tangent[0]/norm];\n' +
