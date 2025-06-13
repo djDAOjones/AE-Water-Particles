@@ -67,6 +67,23 @@
     var groupPosition = groupTransform ? groupTransform.property("Position").value : [0, 0];
     var layerPosition = pathLayer.property("Position").value;
 
+    // --- Find original stroke width ---
+    function findStrokeWidth(group) {
+        for (var i = 1; i <= group.numProperties; i++) {
+            var prop = group.property(i);
+            if (prop.matchName === "ADBE Vector Graphic - Stroke") {
+                var sw = prop.property("Stroke Width").value;
+                if (sw) return sw;
+            } else if (prop.numProperties && prop.numProperties > 0) {
+                var found = findStrokeWidth(prop);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+    var origStrokeWidth = parentGroup ? findStrokeWidth(parentGroup) : null;
+    if (!origStrokeWidth) origStrokeWidth = 8; // fallback default
+
     // --- Path Resampling for Even Arc Length along the true Bezier curve ---
     // 1. Oversample curve at high t resolution
     function cubicBezier(p0, p1, p2, p3, t) {
@@ -153,7 +170,9 @@
         var ellipseGroup = contents.addProperty("ADBE Vector Group");
         ellipseGroup.name = "Ellipse 1";
         var ellipse = ellipseGroup.property("Contents").addProperty("ADBE Vector Shape - Ellipse");
-        ellipse.property("Size").setValue([20, 20]);
+        // Set ellipse size to 1/3 of original stroke width
+        var ellipseSize = origStrokeWidth * 0.25;
+        ellipse.property("Size").setValue([ellipseSize, ellipseSize]);
         // Add fill
         var fill = ellipseGroup.property("Contents").addProperty("ADBE Vector Graphic - Fill");
         fill.property("Color").setValue([0/255, 208/255, 255/255]);
@@ -181,7 +200,7 @@
             'var pt1 = pts[i1];\n' +
             'seedRandom(index, true);\n' +
             'var wiggleAmount = random(4, 12); // Reasonable amplitude\n' +
-            'var wiggleFreq = random(0.5, 1.5); // Reasonable frequency\n' +
+            'var wiggleFreq = random(0.1, 0.5); // Slower frequency\n' +
             'var wigglePhase = random(0, Math.PI * 2); // Random starting phase\n' +
             'var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI + wigglePhase) * wiggleAmount;\n' +
             'var tangent = [pt1[0]-pt0[0], pt1[1]-pt0[1]];\n' +
