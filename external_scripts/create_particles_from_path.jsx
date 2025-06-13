@@ -18,7 +18,7 @@
     // Waterway discharge in cubic meters per second (m³/s)
     var waterway_discharge = 80; // m³/s (e.g., typical river flow)
     // Particle density: how many particles per km per 1 m³/s
-    var particles_per_km_per_cumec = 5; // Reduced particle density
+    var particles_per_km_per_cumec = 2; // Reduced particle density
     // Wiggle speed (random change attempts per second)
     var random_speed = 1; // Hz (default: 1)
     // Wiggle magnitude (fraction of allowed band)
@@ -215,7 +215,7 @@
         ellipse.property("Size").setValue([ellipseSize, ellipseSize]);
         // Add fill
         var fill = ellipseGroup.property("Contents").addProperty("ADBE Vector Graphic - Fill");
-        fill.property("Color").setValue([0/255, 208/255, 255/255]);
+        fill.property("Color").setValue([0/255, 179/255, 219/255]);
 
         // --- Apply Path-Following Expressions ---
         var pathLayerName = pathLayer.name;
@@ -270,21 +270,26 @@
         // Rotation Expression
         var rotExpr =
             '// --- Orient particle to path direction ---\n' +
-            'var marker = thisComp.layer("' + pathLayerName + '").marker.key(1).comment;\n' +
-            'var arr = marker.match(/pathPoints:([\\d\\.,-]+)/)[1].split(",").map(parseFloat);\n' +
-            'var points = [];\n' +
-            'for (var i = 0; i < arr.length; i += 2) points.push([arr[i], arr[i+1]]);\n' +
-            'var duration = 10;\n' +
-            'var offset = (index - 1) / thisComp.numLayers;\n' +
-            'var t = (time/duration + offset) % 1;\n' +
-            'var posIdx = t * (points.length - 1);\n' +
-            'var idxA = Math.floor(posIdx);\n' +
-            'var idxB = Math.min(idxA + 1, points.length - 1);\n' +
-            'var tangent = [\n' +
-            '  points[idxB][0] - points[idxA][0],\n' +
-            '  points[idxB][1] - points[idxA][1]\n' +
-            '];\n' +
-            'radiansToDegrees(Math.atan2(tangent[1], tangent[0]))';
+            'try {\n' +
+            '  var marker = thisComp.layer("' + pathLayerName + '").marker.key(1).comment;\n' +
+            '  var match = marker.match(/pathPoints:([\\d\\.,-]+)/);\n' +
+            '  if (!match) throw "No pathPoints in marker";\n' +
+            '  var arr = match[1].split(",").map(parseFloat);\n' +
+            '  var points = [];\n' +
+            '  for (var i = 0; i < arr.length; i += 2) points.push([arr[i], arr[i+1]]);\n' +
+            '  if (points.length < 2) throw "Not enough points";\n' +
+            '  var duration = 10;\n' +
+            '  var offset = (index - 1) / thisComp.numLayers;\n' +
+            '  var t = (time/duration + offset) % 1;\n' +
+            '  var posIdx = t * (points.length - 1);\n' +
+            '  var idxA = Math.floor(posIdx);\n' +
+            '  var idxB = Math.min(idxA + 1, points.length - 1);\n' +
+            '  var tangent = [\n' +
+            '    points[idxB][0] - points[idxA][0],\n' +
+            '    points[idxB][1] - points[idxA][1]\n' +
+            '  ];\n' +
+            '  radiansToDegrees(Math.atan2(tangent[1], tangent[0]));\n' +
+            '} catch(err) { 0 }';
         particleLayer.property("Rotation").expression = rotExpr;
 
 
