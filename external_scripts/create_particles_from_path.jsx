@@ -181,32 +181,47 @@
         var pathLayerName = pathLayer.name;
         // Position Expression
         // --- Path-following with per-particle random wiggle ---
+        // Distribute particles with static offset and animated wiggle, always within the path stroke width
+        var allowedBand = origStrokeWidth - ellipseSize;
+        var maxWiggle = allowedBand * 0.25; // wiggle can use up to 25% of the band
+        var staticBand = allowedBand/2 - maxWiggle; // static offset must leave room for wiggle
         var posExpr =
-            'var marker = thisComp.layer("' + pathLayerName + '").marker.key(1).comment;\n' +
-            'var arr = marker.match(/pathPoints:([\\d\\.,-]+)/)[1].split(",");\n' +
-            'var pts = [];\n' +
-            'for (var j = 0; j < arr.length; j += 2) { pts.push([parseFloat(arr[j]), parseFloat(arr[j+1])]); }\n' +
-            'var n = ' + numCopies + ';\n' +
-            'var idx = index - (thisComp.numLayers - n);\n' +
-            'var dur = ' + animationDuration + ';\n' +
-            'var t = ((time/dur) + (idx/n)) % 1;\n' +
-            'var p = t * (pts.length - 1);\n' +
-            'var i0 = Math.floor(p);\n' +
-            'var i1 = Math.ceil(p);\n' +
-            'i0 = Math.max(0, Math.min(i0, pts.length - 1));\n' +
-            'i1 = Math.max(0, Math.min(i1, pts.length - 1));\n' +
-            'var frac = p - i0;\n' +
-            'var pt0 = pts[i0];\n' +
-            'var pt1 = pts[i1];\n' +
-            'seedRandom(index, true);\n' +
-            'var wiggleAmount = random(4, 12); // Reasonable amplitude\n' +
-            'var wiggleFreq = random(0.1, 0.5); // Slower frequency\n' +
-            'var wigglePhase = random(0, Math.PI * 2); // Random starting phase\n' +
-            'var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI + wigglePhase) * wiggleAmount;\n' +
-            'var tangent = [pt1[0]-pt0[0], pt1[1]-pt0[1]];\n' +
-            'var norm = Math.sqrt(tangent[0]*tangent[0] + tangent[1]*tangent[1]);\n' +
-            'var perp = [-tangent[1]/norm, tangent[0]/norm];\n' +
-            '[\n  pt0[0] + (pt1[0]-pt0[0])*frac + perp[0]*wiggle,\n  pt0[1] + (pt1[1]-pt0[1])*frac + perp[1]*wiggle\n]';
+            'try {\n' +
+            '  var marker = thisComp.layer("' + pathLayerName + '").marker.key(1).comment;\n' +
+            '  if (!marker) throw "No marker";\n' +
+            '  var arr = marker.match(/pathPoints:([\\d\\.,-]+)/)[1].split(",");\n' +
+            '  var pts = [];\n' +
+            '  for (var j = 0; j < arr.length; j += 2) { pts.push([parseFloat(arr[j]), parseFloat(arr[j+1])]); }\n' +
+            '  if (pts.length < 2) throw "Not enough points";\n' +
+            '  var n = ' + numCopies + ';\n' +
+            '  var idx = index - (thisComp.numLayers - n);\n' +
+            '  var dur = ' + animationDuration + ';\n' +
+            '  var t = ((time/dur) + (idx/n)) % 1;\n' +
+            '  var p = t * (pts.length - 1);\n' +
+            '  var i0 = Math.floor(p);\n' +
+            '  var i1 = Math.ceil(p);\n' +
+            '  i0 = Math.max(0, Math.min(i0, pts.length - 1));\n' +
+            '  i1 = Math.max(0, Math.min(i1, pts.length - 1));\n' +
+            '  var frac = p - i0;\n' +
+            '  var pt0 = pts[i0];\n' +
+            '  var pt1 = pts[i1];\n' +
+            '  seedRandom(index, true);\n' +
+            '  var allowedBand = ' + allowedBand.toFixed(4) + ';\n' +
+            '  var maxWiggle = ' + maxWiggle.toFixed(4) + ';\n' +
+            '  var staticBand = ' + staticBand.toFixed(4) + ';\n' +
+            '  var staticOffset = random(-staticBand, staticBand);\n' +
+            '  var wiggleFreq = random(0.1, 0.5);\n' +
+            '  var wigglePhase = random(0, Math.PI * 2);\n' +
+            '  var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI + wigglePhase) * maxWiggle;\n' +
+            '  var tangent = [pt1[0]-pt0[0], pt1[1]-pt0[1]];\n' +
+            '  var norm = Math.sqrt(tangent[0]*tangent[0] + tangent[1]*tangent[1]);\n' +
+            '  if (norm < 1e-6) throw "Zero tangent";\n' +
+            '  var perp = [-tangent[1]/norm, tangent[0]/norm];\n' +
+            '  var x = pt0[0] + (pt1[0]-pt0[0])*frac + perp[0]*(staticOffset + wiggle);\n' +
+            '  var y = pt0[1] + (pt1[1]-pt0[1])*frac + perp[1]*(staticOffset + wiggle);\n' +
+            '  if (isNaN(x) || isNaN(y)) throw "NaN result";\n' +
+            '  [x, y];\n' +
+            '} catch(err) { [0,0]; }';
         particleLayer.property("Position").expression = posExpr;
         // Rotation Expression
         var rotExpr =
