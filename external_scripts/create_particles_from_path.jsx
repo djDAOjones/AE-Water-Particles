@@ -7,11 +7,24 @@
 */
 
 (function createParticlesFromPath() {
-    // Prompt user for main variables
-    // Hardcoded for testing
-    var animationDuration = 10;
-    var numCopies = 100; // For dev: only create 100 layers
-    var totalCopies = 1000; // But process as if there are 1000
+    // --- USER INPUTS: Set these for your project ---
+    // Waterway velocity in metres per second
+    var waterway_velocity = 0.4; // m/s (e.g., river or canal flow)
+    // Time factor to scale animation speed (higher = faster animation)
+    var time_factor = 100000; // (unitless, tweak for visual effect; default: 100,000)
+    // Composition scale: how many pixels = 1 km in your comp
+    var comp_scale = 733; // px/km (default: 733px = 1km)
+
+    // Waterway discharge in cubic meters per second (m³/s)
+    var waterway_discharge = 80; // m³/s (e.g., typical river flow)
+    // Particle density: how many particles per km per 1 m³/s
+    var particles_per_km_per_cumec = 2; // particles per km per m³/s (default: 2)
+    // --- END USER INPUTS ---
+
+    // Animation duration will be calculated after path length is known
+    var animationDuration = null;
+    var numCopies = null; // Will be set after path length is known
+    var totalCopies = 1000; // Used for initial distribution/offset
 
 
     // Assume user has a comp and a path layer selected
@@ -135,6 +148,29 @@
         compPoints.push(curvePoints[idx]);
     }
     // Store as a marker comment on the path layer (comma-separated)
+
+
+    // --- Calculate animation duration based on physical velocity and comp scale ---
+    // totalLength is in comp pixels; comp_scale is px/km
+    // Convert path length from px to km, then to meters
+    var pathLength_km = totalLength / comp_scale;
+    var pathLength_m = pathLength_km * 1000;
+
+    // --- Calculate number of particles based on discharge and path length ---
+    // numCopies = discharge (m³/s) × particles_per_km_per_cumec × pathLength_km
+    numCopies = Math.round(waterway_discharge * particles_per_km_per_cumec * pathLength_km);
+    // Clamp to at least 1 particle
+    if (!isFinite(numCopies) || numCopies < 1) numCopies = 1;
+
+    // Animation duration (seconds) = (path length in meters) / (velocity in m/s) / (time_factor/1000)
+    // Higher time_factor = faster animation
+    animationDuration = (pathLength_m / waterway_velocity) / (time_factor / 1000);
+    // Clamp to a practical maximum duration (10 minutes = 600 seconds)
+    // NOTE: Duration can become very large if the path is long, velocity is slow, or time_factor is high.
+    // Clamping ensures the animation stays manageable and avoids AE errors.
+    var maxDuration = 600;
+    if (!isFinite(animationDuration) || animationDuration < 0.1) animationDuration = 10;
+    if (animationDuration > maxDuration) animationDuration = maxDuration;
     var flatCompPoints = [];
     for (var q = 0; q < compPoints.length; q++) {
         flatCompPoints.push(compPoints[q][0], compPoints[q][1]);
@@ -183,7 +219,7 @@
         // --- Path-following with per-particle random wiggle ---
         // Distribute particles with static offset and animated wiggle, always within the path stroke width
         var allowedBand = origStrokeWidth - ellipseSize;
-        var maxWiggle = allowedBand * 0.25; // wiggle can use up to 25% of the band
+        var maxWiggle = allowedBand * 0.15; // wiggle can use up to 15% of the band
         var staticBand = allowedBand/2 - maxWiggle; // static offset must leave room for wiggle
         var posExpr =
             'try {\n' +
