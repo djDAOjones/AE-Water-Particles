@@ -19,6 +19,10 @@
     var waterway_discharge = 80; // m³/s (e.g., typical river flow)
     // Particle density: how many particles per km per 1 m³/s
     var particles_per_km_per_cumec = 2; // particles per km per m³/s (default: 2)
+    // Wiggle speed (random change attempts per second)
+    var random_speed = 1; // Hz (default: 1)
+    // Wiggle magnitude (fraction of allowed band)
+    var random_magnitude = 0.15; // (default: 0.15, i.e. 15% of allowed band)
     // --- END USER INPUTS ---
 
     // Animation duration will be calculated after path length is known
@@ -219,7 +223,7 @@
         // --- Path-following with per-particle random wiggle ---
         // Distribute particles with static offset and animated wiggle, always within the path stroke width
         var allowedBand = origStrokeWidth - ellipseSize;
-        var maxWiggle = allowedBand * 0.15; // wiggle can use up to 15% of the band
+        var maxWiggle = allowedBand * random_magnitude; // wiggle can use up to random_magnitude of the band
         var staticBand = allowedBand/2 - maxWiggle; // static offset must leave room for wiggle
         var posExpr =
             'try {\n' +
@@ -246,9 +250,34 @@
             '  var maxWiggle = ' + maxWiggle.toFixed(4) + ';\n' +
             '  var staticBand = ' + staticBand.toFixed(4) + ';\n' +
             '  var staticOffset = random(-staticBand, staticBand);\n' +
-            '  var wiggleFreq = random(0.1, 0.5);\n' +
-            '  var wigglePhase = random(0, Math.PI * 2);\n' +
-            '  var wiggle = Math.sin(time * wiggleFreq * 2 * Math.PI + wigglePhase) * maxWiggle;\n' +
+            '  // --- Custom random wiggle with user speed/magnitude, 25% change chance, smooth transition ---\n' +
+            '  var random_speed = ' + random_speed.toFixed(4) + ';\n' +
+            '  var interval = 1/random_speed;\n' +
+            '  var tnow = time;\n' +
+            '  var seg = Math.floor(tnow/interval);\n' +
+            '  seedRandom(index + seg, true);\n' +
+            '  // --- Sample-and-hold random wiggle with smoothing ---\n' +
+            '  function getValue(segIdx) {\n' +
+            '    seedRandom(index + segIdx, true);\n' +
+            '    return random(-maxWiggle, maxWiggle);\n' +
+            '  }\n' +
+            '  var lastChangeSeg = seg;\n' +
+            '  var found = false;\n' +
+            '  for (var s = seg; s >= 0 && !found; s--) {\n' +
+            '    seedRandom(index + s, true);\n' +
+            '    if (random() < 0.25) { lastChangeSeg = s; found = true; }\n' +
+            '  }\n' +
+            '  var lastChangeTime = lastChangeSeg * interval;\n' +
+            '  var prevValue = getValue(lastChangeSeg - 1);\n' +
+            '  var currValue = getValue(lastChangeSeg);\n' +
+            '  var blend = clamp((tnow - lastChangeTime) / 5, 0, 1);\n' +
+            '  var randomWiggle = found ? linear(blend, 0, 1, prevValue, currValue) : prevValue;\n' +
+            '  // --- Add a secondary sinusoidal wiggle ---\n' +
+            '  var phase = random(0, Math.PI * 2);\n' +
+            '  var sinFreq = random_speed * 0.2;\n' +
+            '  var sinMag = maxWiggle * 0.5;\n' +
+            '  var sinusoidalWiggle = Math.sin(time * sinFreq * 2 * Math.PI + phase) * sinMag;\n' +
+            '  var wiggle = randomWiggle + sinusoidalWiggle;\n' +
             '  var tangent = [pt1[0]-pt0[0], pt1[1]-pt0[1]];\n' +
             '  var norm = Math.sqrt(tangent[0]*tangent[0] + tangent[1]*tangent[1]);\n' +
             '  if (norm < 1e-6) throw "Zero tangent";\n' +
