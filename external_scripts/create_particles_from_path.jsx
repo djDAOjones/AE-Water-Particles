@@ -18,7 +18,7 @@
     // Waterway discharge in cubic meters per second (m³/s)
     var waterway_discharge = 80; // m³/s (e.g., typical river flow)
     // Particle density: how many particles per km per 1 m³/s
-    var particles_per_km_per_cumec = 10; // Increased particle density // particles per km per m³/s (default: 2)
+    var particles_per_km_per_cumec = 5; // Reduced particle density
     // Wiggle speed (random change attempts per second)
     var random_speed = 1; // Hz (default: 1)
     // Wiggle magnitude (fraction of allowed band)
