@@ -9,8 +9,11 @@
     var waterway_velocity = 1; // m/s (Leen Canal)
     var time_factor = 100000; // (unitless, tweak for visual effect; default: 100,000)
     var comp_scale = 733; // px/km (default: 733px = 1km)
-    var waterway_discharge = 0.7; // m³/s (Leen Canal)
-    var particles_per_km_per_cumec = 2; // Reduced particle density
+    var waterway_discharge = 80; // m³/s (Leen Canal)
+    if (waterway_discharge < 10) waterway_discharge = 10; // Enforce minimum
+    // Prompt user for particle density
+    var particles_per_km_per_cumec = parseFloat(prompt("Enter particle density (particles per km per 1 m³/s):", "2"));
+    if (isNaN(particles_per_km_per_cumec) || particles_per_km_per_cumec <= 0) particles_per_km_per_cumec = 2; // fallback default
     var random_speed = 1; // Hz (default: 1)
     var random_magnitude = 0.15; // (default: 0.15, i.e. 15% of allowed band)
     // --- END USER INPUTS ---
