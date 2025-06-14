@@ -2,6 +2,19 @@
   create_particles_from_path.jsx
   After Effects ExtendScript to automate creation of null and particle layers along a path.
   User-configurable: animation duration, number of copies.
+
+  --- Illustrator to After Effects Path Workflow ---
+  • Only standard vector paths (not compound paths, groups, or primitives) are supported.
+  • Tips for making a standard vector path in Illustrator:
+      – If your shape is a rectangle, ellipse, or star: Select it, then go to Object > Shape > Expand Shape (or right-click and choose 'Convert to Path').
+      – If your path is a compound path: Select it, then go to Object > Compound Path > Release.
+      – If your object is grouped: Select it, then go to Object > Ungroup.
+      – Use the Direct Selection Tool (white arrow) to select the specific path you want.
+  • In Illustrator: Select the desired path with the Direct Selection Tool, then Copy (Cmd+C).
+  • In After Effects: Create a new Shape Layer, use Add > Path, select 'Path 1', and Paste (Cmd+V).
+  • Do NOT paste into Ellipse/Rectangle/Star Path or Mask unless you intend to use masks (which are also supported).
+  • After pasting, ensure you see 'Path 1' under Contents > Shape 1 in your shape layer.
+  • The script will use the first mask path or the first Pen-drawn (Bezier) shape path it finds in the selected layer.
   
   Usage: Run from File > Scripts > Run Script File...
 */

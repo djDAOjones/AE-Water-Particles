@@ -15,6 +15,22 @@ This project helps automate the creation and management of particle and null lay
 2. Register every script (internal/external) in `script_registry.md`.
 3. Update documentation as features and scripts evolve.
 
+---
+
+## Illustrator to After Effects Path Workflow
+- Only standard vector paths (Pen-drawn/Bezier, not compound paths, groups, or primitives) are supported by the main automation script.
+- **In Illustrator:**
+    - If your shape is a rectangle, ellipse, or star: Select it, then go to Object > Shape > Expand Shape (or right-click and choose 'Convert to Path').
+    - If your path is a compound path: Select it, then go to Object > Compound Path > Release.
+    - If your object is grouped: Select it, then go to Object > Ungroup.
+    - Use the Direct Selection Tool (white arrow) to select the specific path you want.
+    - Copy (Cmd+C).
+- **In After Effects:**
+    - Create a new Shape Layer, use Add > Path, select 'Path 1', and Paste (Cmd+V).
+    - Do NOT paste into Ellipse/Rectangle/Star Path or Mask unless you intend to use masks (which are also supported).
+    - After pasting, ensure you see 'Path 1' under Contents > Shape 1 in your shape layer.
+    - The script will use the first mask path or the first Pen-drawn (Bezier) shape path it finds in the selected layer.
+
 ## Getting Started
 
 - Place internal scripts/expressions in `internal_scripts/` and note their AE locations.
